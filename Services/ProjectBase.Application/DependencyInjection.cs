@@ -2,6 +2,8 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ProjectBase.Application.Mappings;
+using ProjectBase.Core.Extensions;
+using ProjectBase.Core.Logging.Models;
 using ProjectBase.Core.Security;
 using ProjectBase.Infrastructure;
 
@@ -14,6 +16,10 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
         services.AddMappingProfiles();
+
+        services.Configure<HttpLoggingOptions>(configuration.GetSection("LoggingOptions"));
+
+        services.AddPipelineBehaviors();
 
         services.AddSingleton<IHashProperty, HashProperty>();
 
