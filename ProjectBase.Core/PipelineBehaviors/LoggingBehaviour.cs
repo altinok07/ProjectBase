@@ -67,7 +67,8 @@ internal partial class LoggingBehaviour<TRequest, TResponse>(IOptions<LoggingOpt
                .ForContext(LogFields.RequestBody, requestJson, destructureObjects: false)
                .ForContext(LogFields.ResponseBody, responseJson, destructureObjects: false)
                .ForContext(LogFields.MessageSource, "MediatR")
-               .Information("Completed {RequestName} in {ElapsedMs} ms (CorrelationId: {CorrelationId})", requestName, timer.ElapsedMilliseconds, correlationId);
+               // Use existing structured properties to avoid duplicate fields; include correlation id
+               .Information("Completed {request.name} in {elapsed.ms} ms (CorrelationId: {correlation.id})");
 
             return response;
         }
@@ -80,7 +81,8 @@ internal partial class LoggingBehaviour<TRequest, TResponse>(IOptions<LoggingOpt
                .ForContext(LogFields.ElapsedMs, timer.ElapsedMilliseconds)
                .ForContext(LogFields.RequestBody, requestJson, destructureObjects: false)
                .ForContext(LogFields.MessageSource, "MediatR")
-               .Error(ex, "Error in {RequestName} (CorrelationId: {CorrelationId}) after {ElapsedMs} ms", requestName, correlationId, timer.ElapsedMilliseconds);
+               // Use existing structured properties to avoid duplicate fields; include correlation id
+               .Error(ex, "Error in {request.name} after {elapsed.ms} ms (CorrelationId: {correlation.id})");
 
             throw;
         }

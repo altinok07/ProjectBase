@@ -4,6 +4,7 @@
     <Project Path="Services/ProjectBase.Application/ProjectBase.Application.csproj" Id="be8216bb-b046-45a8-ae22-0f834b335bd4" />
     <Project Path="Services/ProjectBase.Domain/ProjectBase.Domain.csproj" Id="1219b9d2-a834-42b9-a108-4d4db47dcab0" />
     <Project Path="Services/ProjectBase.Infrastructure/ProjectBase.Infrastructure.csproj" Id="38f6fa6c-a381-4894-8bf4-8aabff285a61" />
+    <Project Path="Services/ProjectBase.Model/ProjectBase.Model.csproj" Id="9a1ea0bc-796c-4ac9-ac75-13acd7a0e544" />
   </Folder>
   <Project Path="ProjectBase.Core/ProjectBase.Core.csproj" />
   <Project Path="ProjectBase.Packages/ProjectBase.Packages.csproj" Id="c0567d62-00d6-4d55-9713-45a1f81fcaa1" />

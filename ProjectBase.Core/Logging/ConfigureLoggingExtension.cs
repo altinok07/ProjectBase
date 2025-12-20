@@ -17,8 +17,8 @@ public static class ConfigureLoggingExtension
         .Filter.ByExcluding(Matching.FromSource("System"))
         .WriteTo.Console(theme: SystemConsoleTheme.Literate)
         //.WriteTo.Elasticsearch(GetElasticsearchSinkOptions())
-        .WriteTo.Seq(serverUrl: GetSeqServerUrl())
-        .Enrich.FromLogContext();
+        .WriteTo.Seq(serverUrl: GetSeqServerUrl());
+        //.Enrich.FromLogContext();
 
     #region ElsticSearch Configuration
     private static ElasticsearchSinkOptions GetElasticsearchSinkOptions() => new(new Uri("http://localhost:9200"))

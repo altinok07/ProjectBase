@@ -51,7 +51,8 @@ public sealed class LoggingConsumerFilter<T>(IOptions<HttpLoggingOptions> option
                .ForContext(LogFields.ElapsedMs, stopwatch.ElapsedMilliseconds)
                .ForContext(LogFields.RequestBody, requestJson, destructureObjects: false)
                .ForContext(LogFields.MessageSource, "RabbitMQ")
-               .Information("Completed {RequestName} in {ElapsedMs} ms (CorrelationId: {CorrelationId})", requestName, stopwatch.ElapsedMilliseconds, correlationId);
+               // Use existing structured properties to avoid duplicate fields; include correlation id
+               .Information("Completed {request.name} in {elapsed.ms} ms (CorrelationId: {correlation.id})");
         }
         catch (Exception ex)
         {
@@ -62,7 +63,8 @@ public sealed class LoggingConsumerFilter<T>(IOptions<HttpLoggingOptions> option
                .ForContext(LogFields.ElapsedMs, stopwatch.ElapsedMilliseconds)
                .ForContext(LogFields.RequestBody, requestJson, destructureObjects: false)
                .ForContext(LogFields.MessageSource, "RabbitMQ")
-               .Error(ex, "Error in {RequestName} (CorrelationId: {CorrelationId}) after {ElapsedMs} ms", requestName, correlationId, stopwatch.ElapsedMilliseconds);
+               // Use existing structured properties to avoid duplicate fields; include correlation id
+               .Error(ex, "Error in {request.name} after {elapsed.ms} ms (CorrelationId: {correlation.id})");
 
             throw;
         }

@@ -36,7 +36,7 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
 
         if (context.Response.HasStarted)
         {
-            Log.Warning("Response already started for {Method} {Path} ({CorrelationId}) - skipping body capture", context.Request.Method, context.Request.Path, correlationId);
+            Log.Warning("Response already started for {Method} {Path} - skipping body capture", context.Request.Method, context.Request.Path);
             await next(context);
             return;
         }
@@ -170,7 +170,8 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
                      .ForContext(LogFields.RequestBody, string.IsNullOrWhiteSpace(requestBody) ? "(empty)" : requestBody)
                      .ForContext(LogFields.ResponseBody, string.IsNullOrWhiteSpace(responseBody) ? "(empty)" : responseBody);
 
-        log.Write(level, "HTTP {Method} {Path} completed ({CorrelationId}) in {ElapsedMs} ms", context.Request.Method, context.Request.Path, correlationId, elapsedMs);
+        // Use existing structured properties to avoid duplicate fields; include correlation id
+        log.Write(level, "HTTP {http.method} {http.path} ({correlation.id}) completed in {elapsed.ms} ms");
     }
 
     private static void LogError(HttpContext context, HttpLoggingOptions optionsValue, string correlationId, long elapsedMs, string requestBody, Exception ex, string responseBody)
@@ -186,7 +187,8 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
                      .ForContext(LogFields.RequestBody, string.IsNullOrWhiteSpace(requestBody) ? "(empty)" : requestBody)
                      .ForContext(LogFields.ResponseBody, string.IsNullOrWhiteSpace(responseBody) ? "(empty)" : responseBody);
 
-        log.Write(level, ex, "HTTP {Method} {Path} failed ({CorrelationId}) after {ElapsedMs} ms", context.Request.Method, context.Request.Path, correlationId, elapsedMs);
+        // Use existing structured properties to avoid duplicate fields; include correlation id
+        log.Write(level, ex, "HTTP {http.method} {http.path} ({correlation.id}) failed after {elapsed.ms} ms");
     }
 
     private static LogEventLevel ParseLogLevel(string? level)
