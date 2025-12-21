@@ -11,14 +11,19 @@ public class UnitOfWork : IUnitOfWork
     private IDbContextTransaction? _transaction;
 
     private readonly IUserRepository _userRepository = null!;
+    private readonly IUserRoleRepository _userRoleRepository = null!;
 
     public UnitOfWork(ApplicationContext context)
     {
         _context = context;
         _userRepository = new UserRepository(context);
+        _userRoleRepository = new UserRoleRepository(context);
     }
 
     public IUserRepository UserRepository => _userRepository;
+    public IUserRoleRepository UserRoleRepository => _userRoleRepository;
+
+
 
     public async Task BeginTransactionAsync()
     {

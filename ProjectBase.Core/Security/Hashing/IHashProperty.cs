@@ -1,4 +1,4 @@
-namespace ProjectBase.Core.Security;
+namespace ProjectBase.Core.Security.Hashing;
 
 public interface IHashProperty
 {

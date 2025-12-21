@@ -3,4 +3,4 @@ using ProjectBase.Domain.Entities.Users;
 
 namespace ProjectBase.Domain.Repositories.Users;
 
-public interface IUserRepository : IRepository<User>;
+public interface IUserRoleRepository : IRepository<UserRole>;

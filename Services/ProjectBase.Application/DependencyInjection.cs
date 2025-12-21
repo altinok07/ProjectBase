@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProjectBase.Application.Mappings;
 using ProjectBase.Core.Extensions;
 using ProjectBase.Core.Logging.Models;
-using ProjectBase.Core.Security;
+using ProjectBase.Core.Security.Hashing;
 using ProjectBase.Infrastructure;
 
 namespace ProjectBase.Application;

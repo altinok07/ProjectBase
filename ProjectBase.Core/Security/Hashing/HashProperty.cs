@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace ProjectBase.Core.Security;
+namespace ProjectBase.Core.Security.Hashing;
 
 public class HashProperty : IHashProperty
 {

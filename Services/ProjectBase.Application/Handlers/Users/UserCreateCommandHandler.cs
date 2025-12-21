@@ -2,9 +2,10 @@ using AutoMapper;
 using MediatR;
 using ProjectBase.Application.Commands.Users;
 using ProjectBase.Core.Results;
-using ProjectBase.Core.Security;
+using ProjectBase.Core.Security.Hashing;
 using ProjectBase.Domain.Base;
 using ProjectBase.Domain.Entities.Users;
+using ProjectBase.Domain.Enums;
 
 namespace ProjectBase.Application.Handlers.Users;
 
@@ -16,14 +17,20 @@ internal sealed class UserCreateCommandHandler(IUnitOfWork repo, IMapper mapper,
 
     public async Task<Result> Handle(UserCreateCommand request, CancellationToken cancellationToken)
     {
-        var userMapped = _mapper.Map<User>(request);
-        userMapped.PasswordHash = _hashProperty.Hash(request.Password);
+        var userExist = await _repo.UserRepository.GetAsync(new(I => I.Mail == request.Mail && !I.IsDeleted));
+        if (userExist != null)
+            return Result.Fail(ResultType.Conflict, "Kullanýcý Sistemde kayýtlý");
 
-        var result = await _repo.UserRepository.AddAsync(userMapped);
+        var mapped = _mapper.Map<User>(request);
+        mapped.PasswordHash = _hashProperty.Hash(request.Password);
 
-        if (!result.IsSuccess)
-            return Result.Fail(result.ResponseType, result.Errors!.FirstOrDefault()!.ErrorMessage);
+        mapped.UserRoles = new List<UserRole> { new() { RoleId = (int)UserRoleEnum.TenantAdmin } };
 
-        return Result.Success(result.ResponseType);
+        var model = await _repo.UserRepository.AddAsync(mapped);
+
+        if (!model.IsSuccess)
+            return Result.Fail(ResultType.InternalServerError, "Kullanýcý Eklenirken bir hata oluþtu");
+
+        return Result.Success(ResultType.Created, "Kullanýcý Kaydý baþarýlý");
     }
 }

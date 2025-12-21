@@ -6,7 +6,10 @@ public class User : BaseEntity<Guid>
 {
     public string Name { get; set; } = null!;
     public string Surname { get; set; } = null!;
-    public string Email { get; set; } = null!;
-    public string Phone { get; set; } = null!;
+    public string Mail { get; set; } = null!;
     public string PasswordHash { get; set; } = null!;
+    public int UserTypeId { get; set; }
+
+    public virtual UserType UserType { get; set; } = null!;
+    public virtual ICollection<UserRole> UserRoles { get; set; } = [];
 }

@@ -14,28 +14,34 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         #region Columns
         builder.Property(entity => entity.Name)
             .HasColumnOrder(1)
-            .HasColumnType("nvarchar(256)")
+            .HasMaxLength(64)
             .IsRequired();
 
         builder.Property(entity => entity.Surname)
             .HasColumnOrder(2)
-            .HasColumnType("nvarchar(256)")
+            .HasMaxLength(64)
             .IsRequired();
 
-        builder.Property(entity => entity.Email)
+        builder.Property(entity => entity.Mail)
             .HasColumnOrder(3)
-            .HasColumnType("nvarchar(256)")
-            .IsRequired();
-
-        builder.Property(entity => entity.Phone)
-            .HasColumnOrder(4)
-            .HasColumnType("nvarchar(256)")
+            .HasMaxLength(64)
             .IsRequired();
 
         builder.Property(entity => entity.PasswordHash)
-            .HasColumnOrder(5)
-            .HasColumnType("nvarchar(256)")
+            .HasColumnOrder(4)
+            .HasMaxLength(128)
             .IsRequired();
+
+        builder.Property(entity => entity.UserTypeId)
+            .HasColumnOrder(5)
+            .IsRequired();
+        #endregion
+
+        #region Relations
+        builder.HasOne(u => u.UserType)
+            .WithMany(t => t.Users)
+            .HasForeignKey(u => u.UserTypeId)
+            .OnDelete(DeleteBehavior.Cascade);
         #endregion
     }
 }
