@@ -14,6 +14,9 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
+    // ApiExplorer GroupNameFormat is configured as "'v'VVV" in AddApiVersion() -> "v1", "v2", ...
+    var openApiDocuments = builder.Configuration.GetSection("OpenApi:Documents").Get<string[]>() ?? ["v1", "v2"];
+
     builder.Host.UseSerilog(Log.Logger);
 
     builder.Services.AddApiVersion();
@@ -24,17 +27,18 @@ try
 
     builder.Services.AddJwtAuthentication(builder.Configuration);
 
-    builder.Services.AddOpenApi();
+    builder.Services.AddOpenApi(builder.Configuration, openApiDocuments);
 
     var app = builder.Build();
 
-    app.MapOpenApi();
+    app.MapOpenApi("/openapi/{documentName}.json");
 
     app.MapScalarApiReference(o =>
     {
-        o
-            .WithTitle("My API Docs")
-            .WithTheme(ScalarTheme.Solarized);
+        o.WithTitle("My API Docs");
+        o.WithTheme(ScalarTheme.Solarized);
+        o.WithOpenApiRoutePattern("/openapi/{documentName}.json");
+        o.AddDocuments(openApiDocuments);
     });
 
     app.UseMiddlewares();
