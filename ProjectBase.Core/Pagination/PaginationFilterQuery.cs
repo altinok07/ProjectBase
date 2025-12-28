@@ -26,11 +26,6 @@ public class PaginationFilterQuery
     }
 
     /// <summary>
-    /// Gets or sets the keyword for searching across multiple fields.
-    /// </summary>
-    public string? Keyword { get; set; }
-
-    /// <summary>
     /// Gets or sets the current page number (1-based).
     /// </summary>
     public int PageNumber { get; set; }
@@ -41,14 +36,28 @@ public class PaginationFilterQuery
     public int PageSize { get; set; }
 
     /// <summary>
-    /// Gets or sets the column filter query for advanced filtering.
+    /// Gets or sets grouped filters (parentheses support).
+    /// If set, this takes precedence over <see cref="FilterItems"/>.
     /// </summary>
-    public FilterColumnQuery? Filters { get; set; }
+    public FilterGroupQuery? FilterGroup { get; set; }
 
     /// <summary>
-    /// Gets or sets the sort query for ordering results.
+    /// Gets or sets multiple column filters for advanced filtering.
+    /// If set, this takes precedence over <see cref="Filters"/>.
     /// </summary>
-    public SortQuery? Sort { get; set; }
+    public List<FilterColumnQuery>? FilterItems { get; set; }
+
+    /// <summary>
+    /// Gets or sets how <see cref="FilterItems"/> should be combined.
+    /// Supported: "and" (default), "or".
+    /// </summary>
+    public string? FilterLogic { get; set; }
+
+    /// <summary>
+    /// Gets or sets multiple sort queries for ordering results.
+    /// First item becomes OrderBy, the rest ThenBy.
+    /// </summary>
+    public List<SortQuery>? Sorts { get; set; }
 }
 
 /// <summary>
