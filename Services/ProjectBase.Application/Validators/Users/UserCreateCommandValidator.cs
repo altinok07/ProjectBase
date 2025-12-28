@@ -1,15 +1,9 @@
 using FluentValidation;
 using ProjectBase.Application.Commands.Users;
-using static ProjectBase.Application.Constants.ValidationMessages.UserCreateCommandValidations;
-
-
+using static ProjectBase.Application.Constants.ValidationMessages.UserValidations;
 
 namespace ProjectBase.Application.Validators.Users;
 
-/// <summary>
-/// UserCreateCommand için validasyon kuralları
-/// UserConfiguration'daki property kurallarına göre düzenlenmiştir
-/// </summary>
 public class UserCreateCommandValidator : AbstractValidator<UserCreateCommand>
 {
     public UserCreateCommandValidator()

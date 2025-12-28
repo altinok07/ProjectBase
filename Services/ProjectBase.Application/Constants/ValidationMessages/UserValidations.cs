@@ -1,6 +1,6 @@
 namespace ProjectBase.Application.Constants.ValidationMessages;
 
-public static class UserCreateCommandValidations
+public static class UserValidations
 {
     // Name validasyon mesajları (MaxLength: 64, Required)
     public const string NameRequired = "Ad alanı boş olamaz";

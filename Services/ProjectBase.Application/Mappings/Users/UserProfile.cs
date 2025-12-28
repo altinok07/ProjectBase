@@ -12,6 +12,7 @@ public class UserProfile : Profile
     {
         CreateMap<User, UserCreateCommand>()
             .ReverseMap()
+            .ForMember(user => user.Mail, map => map.MapFrom(request => request.Mail.ToLowerInvariant()))
             .ForMember(user => user.UserTypeId, map => map.MapFrom(request => (int)UserTypeEnum.TenantUser));
 
         CreateMap<User, UserResponse>().ReverseMap();

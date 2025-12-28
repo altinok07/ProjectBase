@@ -1,24 +1,34 @@
 using Asp.Versioning;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectBase.Application.Commands.Users;
+using ProjectBase.Application.Queries.Users;
 using ProjectBase.Core.Api.Controllers;
 
 namespace ProjectBase.Api.Controllers.v1;
 
+[Authorize]
 [ApiVersion(1)]
 public class UserController(IMediator mediator) : BaseController
 {
     private readonly IMediator _mediator = mediator;
 
-    [HttpPost]
+    [AllowAnonymous]
+    [HttpPost("Register")]
     public async Task<IActionResult> Create([FromBody] UserCreateCommand request)
         => CreateActionResult(await _mediator.Send(request));
 
-    //[HttpGet]
-    //public async Task<IActionResult> GetAllUser()
-    //{
-    //    var result = await _mediator.Send(new UsersQuery());
-    //    return CreateActionResult(result);
-    //}
+    [AllowAnonymous]
+    [HttpPost("Login")]
+    public async Task<IActionResult> Login([FromBody] UserLoginQuery request)
+        => CreateActionResult(await _mediator.Send(request));
+
+    [Authorize(Roles = "TenantAdmin")]
+    [HttpGet]
+    public async Task<IActionResult> GetAllUser()
+    {
+        var result = await _mediator.Send(new UsersQuery());
+        return CreateActionResult(result);
+    }
 }

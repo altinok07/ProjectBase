@@ -36,7 +36,8 @@ try
     app.MapScalarApiReference(o =>
     {
         o.WithTitle("My API Docs");
-        o.WithTheme(ScalarTheme.Solarized);
+        o.WithTheme(ScalarTheme.Default);
+        o.WithClassicLayout();
         o.WithOpenApiRoutePattern("/openapi/{documentName}.json");
         o.AddDocuments(openApiDocuments);
     });
