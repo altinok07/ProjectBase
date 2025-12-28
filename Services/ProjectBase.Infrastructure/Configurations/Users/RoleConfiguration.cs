@@ -13,8 +13,12 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.HasKey(entity => entity.Id);
 
         #region Columns
+        builder.Property(entity => entity.Id)
+            .HasColumnOrder(1)    
+            .IsRequired();
+
         builder.Property(entity => entity.Name)
-            .HasColumnOrder(1)
+            .HasColumnOrder(2)
             .HasMaxLength(64)
             .IsRequired();
         #endregion

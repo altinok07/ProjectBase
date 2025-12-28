@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProjectBase.Core.Results;
+using ProjectBase.Core.Security.BasicAuth;
 using ProjectBase.Core.Security.Jwt;
 using ProjectBase.Core.Security.Models;
 using System.Security.Claims;
@@ -27,13 +29,33 @@ public static class JwtAuthenticationExtension
         services.AddSingleton<JwtTokenGenerator>();
         services.AddSingleton<IJwtTokenGenerator>(sp => sp.GetRequiredService<JwtTokenGenerator>());
 
+        // BasicAuth (opsiyonel) - config üzerinden kullanıcı doğrulama
+        var basicSection = configuration.GetSection("BasicAuth");
+        services.Configure<BasicAuthSettings>(basicSection);
+        services.AddSingleton<IBasicAuthCredentialValidator, ConfigBasicAuthCredentialValidator>();
+
+        const string smartScheme = "JWT_OR_BASIC";
+
         services.AddAuthentication(options =>
         {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            // [Authorize] için otomatik seçim: "Authorization: Basic ..." => Basic, aksi halde JWT
+            options.DefaultAuthenticateScheme = smartScheme;
+            options.DefaultChallengeScheme = smartScheme;
+            options.DefaultScheme = smartScheme;
         })
-            .AddJwtBearer(options =>
+            .AddPolicyScheme(smartScheme, "JWT or Basic", options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                {
+                    var header = context.Request.Headers.Authorization.ToString();
+                    if (header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+                        return BasicAuthenticationDefaults.AuthenticationScheme;
+
+                    // default: Bearer
+                    return JwtBearerDefaults.AuthenticationScheme;
+                };
+            })
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 // Development ortamında false, production'da true olmalı
                 // Reverse proxy (nginx, IIS) HTTPS sağlıyorsa false da olabilir
@@ -107,6 +129,12 @@ public static class JwtAuthenticationExtension
                 };
 
             });
+
+        services.AddAuthentication()
+            .AddScheme<BasicAuthenticationOptions, BasicAuthenticationHandler>(
+                BasicAuthenticationDefaults.AuthenticationScheme,
+                _ => { });
+
         return services;
     }
 }

@@ -12,7 +12,7 @@ using ProjectBase.Infrastructure;
 namespace ProjectBase.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20251221123655_V_Created")]
+    [Migration("20251228133644_V_Created")]
     partial class V_Created
     {
         /// <inheritdoc />
@@ -30,7 +30,7 @@ namespace ProjectBase.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnOrder(0);
+                        .HasColumnOrder(1);
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
@@ -64,7 +64,7 @@ namespace ProjectBase.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)")
-                        .HasColumnOrder(1);
+                        .HasColumnOrder(2);
 
                     b.Property<string>("UpdatedBy")
                         .ValueGeneratedOnAdd()
@@ -102,7 +102,7 @@ namespace ProjectBase.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnOrder(0);
+                        .HasColumnOrder(1);
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)")
@@ -128,23 +128,25 @@ namespace ProjectBase.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)")
-                        .HasColumnOrder(2);
+                        .HasColumnOrder(4);
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)")
-                        .HasColumnOrder(1);
+                        .HasColumnOrder(2);
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)")
-                        .HasColumnOrder(3);
+                        .HasColumnOrder(5);
 
                     b.Property<string>("Surname")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasColumnOrder(3);
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)")
@@ -156,7 +158,7 @@ namespace ProjectBase.Infrastructure.Migrations
 
                     b.Property<int>("UserTypeId")
                         .HasColumnType("int")
-                        .HasColumnOrder(4);
+                        .HasColumnOrder(6);
 
                     b.HasKey("Id");
 
@@ -215,7 +217,7 @@ namespace ProjectBase.Infrastructure.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnOrder(0);
+                        .HasColumnOrder(1);
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 

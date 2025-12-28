@@ -32,6 +32,7 @@ internal sealed class UserLoginQueryHandler(IUnitOfWork repo, IHashProperty hash
         List<Claim> claims =
             [
             new Claim("UserId", user.Id.ToString()),
+            new Claim("UserName", $"{user.Name} {user.Surname}"),
             new Claim("UserTypeId", user.UserTypeId.ToString()),
             ];
 

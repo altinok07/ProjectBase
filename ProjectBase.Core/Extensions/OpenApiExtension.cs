@@ -31,6 +31,15 @@ public static class OpenApiExtension
                         Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
                     };
 
+                    document.Components.SecuritySchemes["Basic"] = new OpenApiSecurityScheme
+                    {
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "basic",
+                        In = ParameterLocation.Header,
+                        Name = "Authorization",
+                        Description = "Basic Authorization header. Example: \"Basic {base64(username:password)}\""
+                    };
+
                     // Set global security requirement so UI knows to attach Authorization by default.
                     // If you have anonymous endpoints, you can override this later per-operation.
                     document.Security = new List<OpenApiSecurityRequirement>
@@ -38,6 +47,11 @@ public static class OpenApiExtension
                         new()
                         {
                             [ new OpenApiSecuritySchemeReference("Bearer", document, externalResource: null) ] = []
+                        }
+                        ,
+                        new()
+                        {
+                            [ new OpenApiSecuritySchemeReference("Basic", document, externalResource: null) ] = []
                         }
                     };
 

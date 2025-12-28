@@ -12,28 +12,32 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(entity => entity.Id);
 
         #region Columns
-        builder.Property(entity => entity.Name)
+        builder.Property(entity => entity.Id)
             .HasColumnOrder(1)
-            .HasMaxLength(64)
             .IsRequired();
 
-        builder.Property(entity => entity.Surname)
+        builder.Property(entity => entity.Name)
             .HasColumnOrder(2)
             .HasMaxLength(64)
             .IsRequired();
 
-        builder.Property(entity => entity.Mail)
+        builder.Property(entity => entity.Surname)
             .HasColumnOrder(3)
             .HasMaxLength(64)
             .IsRequired();
 
-        builder.Property(entity => entity.PasswordHash)
+        builder.Property(entity => entity.Mail)
             .HasColumnOrder(4)
+            .HasMaxLength(64)
+            .IsRequired();
+
+        builder.Property(entity => entity.PasswordHash)
+            .HasColumnOrder(5)
             .HasMaxLength(128)
             .IsRequired();
 
         builder.Property(entity => entity.UserTypeId)
-            .HasColumnOrder(5)
+            .HasColumnOrder(6)
             .IsRequired();
         #endregion
 

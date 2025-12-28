@@ -59,6 +59,7 @@ namespace ProjectBase.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    Surname = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     Mail = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     UserTypeId = table.Column<int>(type: "int", nullable: false),
@@ -68,8 +69,7 @@ namespace ProjectBase.Infrastructure.Migrations
                     UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    DeletedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Surname = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    DeletedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
