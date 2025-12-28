@@ -2,9 +2,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProjectBase.Core.Results;
+using ProjectBase.Core.Security.Jwt;
 using ProjectBase.Core.Security.Models;
+using System.Security.Claims;
 using System.Text;
 
 namespace ProjectBase.Core.Extensions;
@@ -13,7 +16,16 @@ public static class JwtAuthenticationExtension
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var tokenOptions = configuration.GetSection("JWT").Get<TokenSettings>() ?? throw new ArgumentException("JWT token options cannot be null.");
+        var jwtSection = configuration.GetSection("JWT");
+        var tokenOptions = jwtSection.Get<TokenSettings>() ?? throw new ArgumentException("JWT token options cannot be null.");
+
+        // Token üretiminde ve diğer yerlerde kullanılabilmesi için Options + servis kaydı
+        services.Configure<TokenSettings>(jwtSection);
+        services.AddSingleton<ITokenSettings>(sp => sp.GetRequiredService<IOptions<TokenSettings>>().Value);
+
+        // Hem interface hem de concrete type inject edilebilsin diye self registration
+        services.AddSingleton<JwtTokenGenerator>();
+        services.AddSingleton<IJwtTokenGenerator>(sp => sp.GetRequiredService<JwtTokenGenerator>());
 
         services.AddAuthentication(options =>
         {
@@ -47,7 +59,10 @@ public static class JwtAuthenticationExtension
 
                     ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
 
-                    RequireExpirationTime = true
+                    RequireExpirationTime = true,
+
+                    // Handler tarafında ClaimTypes.Role ürettiğimiz için role mapping net olsun
+                    RoleClaimType = ClaimTypes.Role
                 };
 
                 options.Events = new JwtBearerEvents
