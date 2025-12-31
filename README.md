@@ -307,6 +307,63 @@ Dosya: `ProjectBase.Core/Repositories/EfCore/Repository {T}.cs`
 
 ---
 
+## Dapper: Handler içinde hızlı SQL (opsiyonel)
+
+Bu repo’da Dapper entegrasyonu, “EF repository desenini bozmadan” **handler içinde** gerektiğinde ham SQL çalıştırabilmeniz için tasarlandı.
+
+### `IDapperExecutor`
+
+Dosya: `ProjectBase.Core/Repositories/Dapper/IDapperExecutor.cs`
+
+- **Ne sağlar**: Handler’a inject edip `QueryAsync<T> / QuerySingleOrDefaultAsync<T> / ExecuteAsync` ile Dapper sorgusu çalıştırmanızı sağlar.
+
+### `IDbConnectionProvider` + `EfCoreDbConnectionProvider<TContext>`
+
+Dosyalar:
+
+- `ProjectBase.Core/Repositories/Dapper/IDbConnectionProvider.cs`
+- `ProjectBase.Core/Repositories/Dapper/EfCoreDbConnectionProvider.cs`
+
+- **Ne sağlar**: Dapper’ın kullanacağı `DbConnection` ve (varsa) `DbTransaction` bilgisini verir.
+- **Kritik özellik**: EF Core ile `BeginTransactionAsync()` açıldıysa, Dapper da **aynı connection/transaction** üzerinde çalışır. (Tek `Commit/Rollback` ile yönetim.)
+
+### DI kaydı
+
+Dosya: `ProjectBase.Core/Repositories/DependencyInjection.cs`
+
+Repo örneğinde, Infrastructure katmanında `DbContext` kurulumundan sonra şöyle bağlanır:
+
+```csharp
+services.AddRepositories<ApplicationContext>(); // Dapper: IDbConnectionProvider + IDapperExecutor
+```
+
+> Not: `AddRepositories<TContext>` generic olduğu için kendi context’inizi verirsiniz (ör. `MyAppContext`).
+
+### Handler’da kullanım örneği (transaction ile)
+
+Transaction gerekiyorsa standardınız `IUnitOfWork` olduğu için, sadece Dapper çalıştıracak olsanız bile transaction’ı UoW ile açıp yönetebilirsiniz:
+
+```csharp
+await uow.BeginTransactionAsync();
+try
+{
+    var r = await dapper.ExecuteAsync("UPDATE Users SET Name=@Name WHERE Id=@Id", new { Id = userId, Name = "X" }, cancellationToken: ct);
+    if (!r.IsSuccess) { await uow.RollbackAsync(); return Result.Fail(ResultType.InternalServerError, "Dapper failed"); }
+
+    await uow.CommitAsync();
+    return Result.Success(ResultType.Success, "OK");
+}
+catch
+{
+    await uow.RollbackAsync();
+    return Result.Fail(ResultType.InternalServerError, "Transaction failed");
+}
+```
+
+> Not: Transaction açmazsanız Dapper komutları transaction’sız çalışır (SQL Server’da statement bazında atomik; ama “birden fazla statement tek commit/rollback” olmaz).
+
+---
+
 ## Pagination / Filter / Sort (liste ekranları için)
 
 Core içinde liste ekranlarını standartlaştırmak için hazır modeller ve yardımcılar var:

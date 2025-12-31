@@ -24,6 +24,10 @@ public class UserController(IMediator mediator) : BaseController
     public async Task<IActionResult> Create([FromBody] UserCreateCommand request)
         => CreateActionResult(await _mediator.Send(request));
 
+    [HttpPost("RegisterDapper")]
+    public async Task<IActionResult> RegisterDapper([FromBody] UserCreateCommandDapper request)
+    => CreateActionResult(await _mediator.Send(request));
+
     [AllowAnonymous]
     [HttpPost("Login")]
     public async Task<IActionResult> Login([FromBody] UserLoginQuery request)

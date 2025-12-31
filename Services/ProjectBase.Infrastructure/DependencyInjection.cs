@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ProjectBase.Core.Repositories;
 using ProjectBase.Domain.Base;
 using ProjectBase.Infrastructure.Base;
 
@@ -18,10 +19,10 @@ public static class DependencyInjection
             options.UseSqlServer(sqlConStr);
         });
 
-        //Add Repositories
-
-        services.AddTransient<IUnitOfWork, UnitOfWork>();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+        services.AddTransient<IUnitOfWork, UnitOfWork>();
+
+        services.AddRepositories<ApplicationContext>();
 
         return services;
     }
