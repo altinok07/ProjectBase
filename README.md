@@ -241,6 +241,44 @@ Dosya: `ProjectBase.Core/Extensions/OpenApiExtension.cs`
 - **Ne sağlar**: Doküman bazlı OpenAPI kaydı (ör. `v1`, `v2`) ve Scalar UI için **Bearer + Basic** security scheme tanımı.
 - **Not**: Dokümana global security requirement ekler; anonymous endpoint’leriniz için action bazında `[AllowAnonymous]` kullanabilirsiniz.
 
+#### Convention-based endpoint docs (Summary/Description otomatik doldurma)
+
+`AddOpenApi(...)` içinde bir `OperationTransformer` vardır: Eğer bir action için `operation.Summary` / `operation.Description` değerleri **explicit** olarak verilmediyse, bunları isim konvansiyonu ile bir “docs” sınıfından okumayı dener.
+
+- **Controller namespace → Docs namespace**:
+  - `ProjectBase.Api.Controllers.v1` → `ProjectBase.Api.OpenApiDocs.v1`
+- **Docs type candidate’ları** (sırayla dener):
+  - `{DocsNamespace}.{ControllerName}s.{ControllerName}OpenApiDocs` (önerilen, plural folder)
+  - `{DocsNamespace}.{ControllerName}.{ControllerName}OpenApiDocs` (singular folder)
+  - `{DocsNamespace}.{ControllerName}OpenApiDocs` (no folder)
+- **Nested type**: `{ActionName}`
+- **Alanlar**: `public const string Summary`, `public const string Description`
+
+Örnek (repo içindeki gerçek dosya):
+
+```csharp
+// Services/ProjectBase.Api/OpenApiDocs/v1/Users/UserOpenApiDocs.cs
+namespace ProjectBase.Api.OpenApiDocs.v1.Users;
+
+public static class UserOpenApiDocs
+{
+    public static class Register
+    {
+        public const string Summary = "Kullanıcı oluşturma işlemi";
+        public const string Description = """
+        JWT Bearer token gerektirir.
+
+        - **Name** (`string`): zorunlu, en fazla 64 karakter
+        - **Surname** (`string`): zorunlu, en fazla 64 karakter
+        - **Mail** (`string`): zorunlu, en fazla 64 karakter, geçerli e-posta formatı
+        - **Password** (`string`): zorunlu, en az 8 karakter
+        """;
+    }
+}
+```
+
+> Not: Bu mekanizma, action üzerinde Summary/Description zaten verilmişse **override etmez**; sadece boş olan alanları doldurur.
+
 ### `app.UseMiddlewares()`
 
 Dosya: `ProjectBase.Core/Extensions/MiddlewareExtension.cs`

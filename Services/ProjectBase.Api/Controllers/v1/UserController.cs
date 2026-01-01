@@ -21,7 +21,7 @@ public class UserController(IMediator mediator) : BaseController
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("Register")]
-    public async Task<IActionResult> Create([FromBody] UserCreateCommand request)
+    public async Task<IActionResult> Register([FromBody] UserCreateCommand request)
         => CreateActionResult(await _mediator.Send(request));
 
     [HttpPost("RegisterDapper")]
