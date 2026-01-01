@@ -4,7 +4,6 @@ using ProjectBase.Core.Expressions;
 using ProjectBase.Core.Pagination;
 using ProjectBase.Core.Results;
 using System.Diagnostics;
-using System.IO;
 
 namespace ProjectBase.Core.Repositories.EfCore;
 
@@ -69,7 +68,7 @@ public static class RepositoryExtensions
                 var file = frame.GetFileName();
                 var method = frame.GetMethod()?.Name;
                 var line = frame.GetFileLineNumber();
-                
+
                 errors.Add(new ErrorResult(
                     propertyName: "StackTrace",
                     errorMessage: $"{Path.GetFileName(file)}:{line} in {method}",

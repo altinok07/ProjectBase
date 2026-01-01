@@ -124,11 +124,11 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
     {
         // Convert to soft delete
         entry.State = EntityState.Unchanged;
-        
+
         entity.IsDeleted = true;
         entity.DeletedDate = utcNow;
         entity.DeletedBy = currentUser;
-        
+
         MarkDeleteFieldsAsModified(entry);
         SetUpdatedFields(entity, currentUser, utcNow);
     }

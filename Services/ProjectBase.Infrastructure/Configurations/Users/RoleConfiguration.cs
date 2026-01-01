@@ -14,7 +14,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
 
         #region Columns
         builder.Property(entity => entity.Id)
-            .HasColumnOrder(1)    
+            .HasColumnOrder(1)
             .IsRequired();
 
         builder.Property(entity => entity.Name)

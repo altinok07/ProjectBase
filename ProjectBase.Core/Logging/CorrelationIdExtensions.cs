@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using ProjectBase.Core.Logging.Models;
 using System.Diagnostics;
 
-namespace ProjectBase.Core.Extensions;
+namespace ProjectBase.Core.Logging;
 
 internal static class CorrelationIdExtensions
 {

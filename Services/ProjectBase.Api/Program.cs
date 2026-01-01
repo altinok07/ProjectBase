@@ -1,5 +1,6 @@
 using ProjectBase.Application;
 using ProjectBase.Core.Extensions;
+using ProjectBase.Core.Logging;
 using Scalar.AspNetCore;
 using Serilog;
 

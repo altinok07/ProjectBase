@@ -7,7 +7,7 @@ using Serilog.Sinks.Elasticsearch;
 using Serilog.Sinks.SystemConsole.Themes;
 using System.Reflection;
 
-namespace ProjectBase.Core.Extensions;
+namespace ProjectBase.Core.Logging;
 
 public static class ConfigureLoggingExtension
 {
@@ -18,7 +18,7 @@ public static class ConfigureLoggingExtension
         .WriteTo.Console(theme: SystemConsoleTheme.Literate)
         //.WriteTo.Elasticsearch(GetElasticsearchSinkOptions())
         .WriteTo.Seq(serverUrl: GetSeqServerUrl());
-        //.Enrich.FromLogContext();
+    //.Enrich.FromLogContext();
 
     #region ElsticSearch Configuration
     private static ElasticsearchSinkOptions GetElasticsearchSinkOptions() => new(new Uri("http://localhost:9200"))

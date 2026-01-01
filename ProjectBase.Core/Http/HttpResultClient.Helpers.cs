@@ -1,6 +1,6 @@
+using ProjectBase.Core.Results;
 using System.Net;
 using System.Net.Http.Json;
-using ProjectBase.Core.Results;
 
 namespace ProjectBase.Core.Http;
 

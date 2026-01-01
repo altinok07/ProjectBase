@@ -99,7 +99,7 @@ public class Repository<T>(BaseContext context) : IRepository<T> where T : BaseE
             T? entity = await _context.Set<T>().Where(predicate).FirstOrDefaultAsync();
             if (entity == null)
                 return Result<bool>.Fail(ResultType.NotFound, "NotDeleted");
-            
+
             _context.Set<T>().Remove(entity);
             var result = await _context.SaveChangesAsync() > 0;
 

@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using MediatR;
-using ProjectBase.Core.Extensions;
 using ProjectBase.Core.Logging;
 using Serilog;
 using System.Diagnostics;

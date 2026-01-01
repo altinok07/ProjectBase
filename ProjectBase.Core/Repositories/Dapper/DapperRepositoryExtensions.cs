@@ -1,6 +1,5 @@
 using ProjectBase.Core.Results;
 using System.Diagnostics;
-using System.IO;
 
 namespace ProjectBase.Core.Repositories.Dapper;
 

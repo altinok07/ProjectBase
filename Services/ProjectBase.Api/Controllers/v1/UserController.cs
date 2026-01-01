@@ -215,7 +215,7 @@ public class UserController(IMediator mediator) : BaseController
     {
         public string Name { get; set; } = "";
         public DemoCategory Category { get; set; } = new();
-    } 
+    }
 
     private sealed class DemoCategory : BaseEntity<Guid>
     {

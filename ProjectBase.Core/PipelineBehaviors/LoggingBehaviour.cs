@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Options;
-using ProjectBase.Core.Extensions;
 using ProjectBase.Core.Logging;
 using ProjectBase.Core.Logging.Models;
 using Serilog;

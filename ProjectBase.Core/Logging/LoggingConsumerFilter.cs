@@ -1,6 +1,5 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Options;
-using ProjectBase.Core.Extensions;
 using ProjectBase.Core.Helpers;
 using ProjectBase.Core.Logging.Models;
 using Serilog;
