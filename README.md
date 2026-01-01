@@ -364,6 +364,94 @@ catch
 
 ---
 
+## HTTP: Dış servislere ortak client (Result<T> dönen)
+
+Handler içinde her seferinde `HttpClient` inject edip serialize / deserialize / error-handling yazmak yerine, Core’da hazır bir wrapper var:
+
+- `IHttpResultClient` (Dosya: `ProjectBase.Core/Http/IHttpResultClient.cs`)
+- `HttpResultClient` (partial sınıf):
+  - `ProjectBase.Core/Http/HttpResultClient.cs` (ctor + kısa public API)
+  - `ProjectBase.Core/Http/HttpResultClient.Send.cs` (çekirdek send/response akışı)
+  - `ProjectBase.Core/Http/HttpResultClient.FormData.cs` (multipart/form-data upload)
+  - `ProjectBase.Core/Http/HttpResultClient.Helpers.cs` (helper’lar + private tipler)
+
+### DI
+
+`Infrastructure` içinde otomatik eklenir:
+
+```csharp
+services.AddHttpResultClient();
+```
+
+> Not: Dış servis için **named client** tanımlamanız önerilir.
+
+### Named HttpClient örneği
+
+API projesinde (örn. `Services/ProjectBase.Api/Program.cs`) config’ten base address verip named client ekleyebilirsiniz:
+
+```csharp
+builder.Services.AddHttpClient("UserService", c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["Integrations:UserService:BaseUrl"]!);
+});
+```
+
+### Handler’da kullanım örneği
+
+```csharp
+public sealed class UsersQueryHandler(IHttpResultClient http) : IRequestHandler<UsersQuery, Result<List<UserDto>>>
+{
+    public async Task<Result<List<UserDto>>> Handle(UsersQuery request, CancellationToken ct)
+    {
+        return await http.GetAsync<List<UserDto>>(
+            clientName: "UserService",
+            // NOTE: Leading '/' resets BaseAddress path. Prefer relative paths (no leading slash).
+            url: "api/users",
+            cancellationToken: ct);
+    }
+}
+```
+
+### `POST` multipart/form-data (Form + File upload)
+
+Dosya upload gibi senaryolar için:
+
+- **Metot**: `PostFormDataAsync<TResponse>(...)`
+- **Dosya parçası modeli**: `FormFilePart` (Dosya: `ProjectBase.Core/Http/FormFilePart.cs`)
+
+Örnek kullanım:
+
+```csharp
+var fields = new Dictionary<string, string?>
+{
+    ["name"] = "Altin",
+    ["age"] = "30"
+};
+
+await using var fs = File.OpenRead("c:\\temp\\photo.jpg");
+
+var files = new[]
+{
+    new FormFilePart(
+        Name: "file",              // server tarafında beklenen field adı
+        Content: fs,               // stream (file/network/memory)
+        FileName: "photo.jpg",     // request'teki filename
+        ContentType: "image/jpeg", // opsiyonel
+        LeaveOpen: true)           // true: stream kapatma sorumluluğu sende
+};
+
+var result = await http.PostFormDataAsync<MyResponse>(
+    clientName: "UserService",
+    url: "api/users/upload",
+    fields: fields,
+    files: files,
+    cancellationToken: ct);
+```
+
+> Not: `LeaveOpen=false` (default) ise istek tamamlanınca stream dispose edilir (en güvenli varsayılan). `LeaveOpen=true` ise stream açık kalır; işin bitince sen dispose etmelisin.
+
+---
+
 ## Pagination / Filter / Sort (liste ekranları için)
 
 Core içinde liste ekranlarını standartlaştırmak için hazır modeller ve yardımcılar var:

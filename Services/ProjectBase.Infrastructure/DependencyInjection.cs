@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using ProjectBase.Core.Http;
 using ProjectBase.Core.Repositories;
 using ProjectBase.Domain.Base;
 using ProjectBase.Infrastructure.Base;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddTransient<IUnitOfWork, UnitOfWork>();
 
         services.AddRepositories<ApplicationContext>();
+        services.AddHttpResultClient();
 
         return services;
     }
