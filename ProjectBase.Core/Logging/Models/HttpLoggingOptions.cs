@@ -1,4 +1,4 @@
-﻿using Serilog.Events;
+using Serilog.Events;
 namespace ProjectBase.Core.Logging.Models;
 
 public sealed class HttpLoggingOptions : LoggingOptions
@@ -23,6 +23,10 @@ public sealed class HttpLoggingOptions : LoggingOptions
         "/swagger-ui",
         "/swagger/v1/swagger.json",
         "/api-docs",
+        "/openapi",
+        "/scalar",
+        "/hangfire",
+        "/hubs",
 
         // Kimlik Doğrulama ve Token Endpointleri
         "/auth/token",
@@ -59,7 +63,7 @@ public sealed class HttpLoggingOptions : LoggingOptions
     public int MaxResponseBodyBytes { get; set; } = 64 * 1024;
 
     public string MaskWith { get; set; } = "****";
-    public string[] SensitiveFields { get; set; } = ["password", "token", "accessToken", "authorization", "ssn", "iban", "creditCard", "cardNumber", "tcKimlik", "email", "phone"];
+    public string[] SensitiveFields { get; set; } = ["password", "token", "accessToken", "authorization", "ssn", "iban", "creditCard", "cardNumber", "tcKimlik", "email", "phone", "recoveryCode"];
 
     public string ResponseLogLevel { get; set; } = LogEventLevel.Information.ToString();
     public string ErrorLogLevel { get; set; } = LogEventLevel.Error.ToString();

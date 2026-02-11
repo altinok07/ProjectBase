@@ -111,38 +111,10 @@ public static class FilterQueryHelper
         if (string.IsNullOrWhiteSpace(filter.ColumnField)) return null;
 
         var field = filter.ColumnField!.Trim();
+        var segments = field.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0) return null;
 
-        // dot-path: navigation or collection Any
-        if (field.IndexOf('.') > -1)
-        {
-            var segments = field.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (segments.Length < 2) return null;
-
-            var first = TryMemberAccess(parameter, segments[0]);
-            if (first == null) return null;
-
-            if (IsEnumerableButNotString(first.Type))
-            {
-                // Offers.Count
-                if (segments.Length == 2 && string.Equals(segments[1], "Count", StringComparison.OrdinalIgnoreCase))
-                    return BuildCountCondition(first, filter);
-
-                return BuildAnyCondition(first, segments.Skip(1).ToArray(), filter);
-            }
-
-            Expression? member = first;
-            foreach (var seg in segments.Skip(1))
-            {
-                member = TryMemberAccess(member, seg);
-                if (member == null) return null;
-            }
-
-            return BuildMemberCondition(member, filter);
-        }
-
-        // single member on root
-        var rootMember = TryMemberAccess(parameter, field);
-        return rootMember == null ? null : BuildMemberCondition(rootMember, filter);
+        return BuildConditionFromSegments(parameter, segments, index: 0, filter, depth: 0);
     }
 
     private static Expression? BuildGroupCondition<T>(ParameterExpression parameter, FilterGroupQuery group, int depth) where T : BaseEntity
@@ -188,6 +160,59 @@ public static class FilterQueryHelper
         return combined;
     }
 
+    /// <summary>
+    /// Builds a condition for a dot-path where collections can appear at any segment.
+    /// Examples:
+    /// - Group.Name
+    /// - Group.Members.Count
+    /// - Group.Posts.PostCategory.Name  (Posts is a collection => Any(p => p.PostCategory.Name ...))
+    /// </summary>
+    private static Expression? BuildConditionFromSegments(Expression instance, string[] segments, int index, FilterColumnQuery filter, int depth)
+    {
+        if (depth > 32) return null;
+        if (index < 0 || index >= segments.Length) return null;
+
+        var seg = segments[index];
+        var member = TryMemberAccess(instance, seg);
+        if (member == null) return null;
+
+        // Collection segment (at any depth)
+        if (IsEnumerableButNotString(member.Type))
+        {
+            var op = filter.OperatorValue;
+
+            // Collection.Count (must be terminal)
+            if (index + 1 < segments.Length && string.Equals(segments[index + 1], "Count", StringComparison.OrdinalIgnoreCase))
+            {
+                if (index + 2 != segments.Length) return null;
+                return BuildCountCondition(member, filter);
+            }
+
+            // Allow filtering on collection emptiness: Posts isempty / isnotempty
+            if (index == segments.Length - 1)
+            {
+                var anyExpr = BuildAnyExists(member);
+                if (anyExpr == null) return null;
+
+                if (string.Equals(op, "isempty", StringComparison.OrdinalIgnoreCase))
+                    return Expression.Not(anyExpr);
+                if (string.Equals(op, "isnotempty", StringComparison.OrdinalIgnoreCase))
+                    return anyExpr;
+
+                return null;
+            }
+
+            // Any over collection for remaining path
+            return BuildAnyCondition(member, segments.Skip(index + 1).ToArray(), filter);
+        }
+
+        // Reference/value segment
+        if (index == segments.Length - 1)
+            return BuildMemberCondition(member, filter);
+
+        return BuildConditionFromSegments(member, segments, index + 1, filter, depth + 1);
+    }
+
     private static Expression? BuildAnyCondition(Expression enumerableMember, string[] innerPathSegments, FilterColumnQuery filter)
     {
         if (innerPathSegments.Length == 0) return null;
@@ -203,14 +228,7 @@ public static class FilterQueryHelper
         if (elementType == null) return null;
 
         var m = Expression.Parameter(elementType, "m");
-        Expression? member = m;
-        foreach (var seg in innerPathSegments)
-        {
-            member = TryMemberAccess(member, seg);
-            if (member == null) return null;
-        }
-
-        var memberCondition = BuildMemberCondition(member, filter);
+        var memberCondition = BuildConditionFromSegments(m, innerPathSegments, index: 0, filter, depth: 0);
         if (memberCondition == null) return null;
 
         // rebind parameter from 'parameter' to 'm'
@@ -218,6 +236,17 @@ public static class FilterQueryHelper
 
         var anyCall = Expression.Call(typeof(Enumerable), "Any", new[] { elementType }, enumerableMember, lambda);
         return string.Equals(filter.OperatorValue, "not", StringComparison.OrdinalIgnoreCase) ? Expression.Not(anyCall) : anyCall;
+    }
+
+    private static Expression? BuildAnyExists(Expression enumerableMember)
+    {
+        var elementType = GetEnumerableElementType(enumerableMember.Type);
+        if (elementType == null) return null;
+
+        var m = Expression.Parameter(elementType, "m");
+        var alwaysTrue = Expression.Constant(true);
+        var lambda = Expression.Lambda(alwaysTrue, m);
+        return Expression.Call(typeof(Enumerable), "Any", new[] { elementType }, enumerableMember, lambda);
     }
 
     private static Expression? BuildCountCondition(Expression enumerableMember, FilterColumnQuery filter)

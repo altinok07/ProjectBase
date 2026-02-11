@@ -88,6 +88,20 @@ public static class JwtAuthenticationExtension
 
                 options.Events = new JwtBearerEvents
                 {
+                    // SignalR / WebSocket: allow token via query string (?access_token=...)
+                    // (JS client uses this pattern because headers are limited on WebSocket upgrade)
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
+
                     // Token doğrulama sırasında exception olduysa da (signature/issuer/audience/expiry),
                     // token hiç gelmediyse de en sonda Challenge tetiklenir. Body'yi sadece burada yazalım.
                     OnChallenge = context =>

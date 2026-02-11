@@ -32,11 +32,11 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
         }
 
         var currentUser = GetCurrentUser();
-        var utcNow = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         foreach (var entry in modifiedEntries)
         {
-            UpdateEntityAuditFields(entry, currentUser, utcNow);
+            UpdateEntityAuditFields(entry, currentUser, now);
         }
     }
 
@@ -54,24 +54,35 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
     /// <summary>
     /// Updates audit fields for a single entity based on its current state.
     /// </summary>
-    private void UpdateEntityAuditFields(EntityEntry<BaseEntity> entry, string? currentUser, DateTime utcNow)
+    private void UpdateEntityAuditFields(EntityEntry<BaseEntity> entry, string? currentUser, DateTime now)
     {
         var entity = entry.Entity;
 
         switch (entry.State)
         {
             case EntityState.Added:
-                SetCreatedFields(entity, currentUser, utcNow);
-                SetUpdatedFields(entity, currentUser, utcNow);
+                SetCreatedFields(entity, currentUser, now);
+                SetUpdatedFields(entity, currentUser, now);
                 break;
 
             case EntityState.Modified:
                 PreventCreatedFieldsModification(entry);
-                SetUpdatedFields(entity, currentUser, utcNow);
+                SetUpdatedFields(entity, currentUser, now);
+
+                // If entity is being soft-deleted via "Modified" state (instead of "Deleted"),
+                // ensure Deleted* audit fields are populated.
+                if (entity.IsDeleted && entry.Property(e => e.IsDeleted).IsModified)
+                {
+                    entity.DeletedDate ??= now;
+                    entity.DeletedBy ??= currentUser;
+
+                    entry.Property(e => e.DeletedDate).IsModified = true;
+                    entry.Property(e => e.DeletedBy).IsModified = true;
+                }
                 break;
 
             case EntityState.Deleted:
-                HandleEntityDeletion(entry, entity, currentUser, utcNow);
+                HandleEntityDeletion(entry, entity, currentUser, now);
                 break;
         }
     }
@@ -79,18 +90,18 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
     /// <summary>
     /// Sets the created audit fields for a new entity.
     /// </summary>
-    private static void SetCreatedFields(BaseEntity entity, string? currentUser, DateTime utcNow)
+    private static void SetCreatedFields(BaseEntity entity, string? currentUser, DateTime now)
     {
-        entity.CreatedDate = utcNow;
+        entity.CreatedDate = now;
         entity.CreatedBy = currentUser;
     }
 
     /// <summary>
     /// Sets the updated audit fields for an entity.
     /// </summary>
-    private static void SetUpdatedFields(BaseEntity entity, string? currentUser, DateTime utcNow)
+    private static void SetUpdatedFields(BaseEntity entity, string? currentUser, DateTime now)
     {
-        entity.UpdatedDate = utcNow;
+        entity.UpdatedDate = now;
         entity.UpdatedBy = currentUser;
     }
 
@@ -122,15 +133,25 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
     /// </summary>
     private static void PerformSoftDelete(EntityEntry<BaseEntity> entry, BaseEntity entity, string? currentUser, DateTime utcNow)
     {
-        // Convert to soft delete
-        entry.State = EntityState.Unchanged;
+        // Convert physical delete request into an UPDATE (soft delete).
+        // IMPORTANT: We must not keep EntityState.Deleted, otherwise EF may try to fix up
+        // required relationships (e.g. set FK to null) and throw "association severed" exceptions.
+        entry.State = EntityState.Modified;
+
+        // Only update the soft-delete + audit fields (avoid updating every column).
+        foreach (var p in entry.Properties)
+            p.IsModified = false;
 
         entity.IsDeleted = true;
         entity.DeletedDate = utcNow;
         entity.DeletedBy = currentUser;
-
-        MarkDeleteFieldsAsModified(entry);
         SetUpdatedFields(entity, currentUser, utcNow);
+
+        entry.Property(e => e.IsDeleted).IsModified = true;
+        entry.Property(e => e.DeletedDate).IsModified = true;
+        entry.Property(e => e.DeletedBy).IsModified = true;
+        entry.Property(e => e.UpdatedDate).IsModified = true;
+        entry.Property(e => e.UpdatedBy).IsModified = true;
     }
 
     /// <summary>

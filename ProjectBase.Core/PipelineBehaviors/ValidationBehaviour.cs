@@ -1,12 +1,13 @@
 ﻿using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using ProjectBase.Core.Logging;
 using Serilog;
 using System.Diagnostics;
 
 namespace ProjectBase.Core.PipelineBehaviors;
 
-internal class ValidationBehaviour<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
+internal class ValidationBehaviour<TRequest, TResponse>(IHttpContextAccessor httpContextAccessor, IEnumerable<IValidator<TRequest>> validators) : IPipelineBehavior<TRequest, TResponse> where TRequest : IRequest<TResponse>
 {
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
@@ -20,8 +21,10 @@ internal class ValidationBehaviour<TRequest, TResponse>(IEnumerable<IValidator<T
             if (failures.Count != 0)
             {
                 var requestName = typeof(TRequest).Name;
+                var userId = httpContextAccessor.HttpContext.GetUserIdOrAnonymous();
 
                 Log.ForContext(LogFields.CorrelationId, Activity.Current?.GetOrCreateCorrelationId())
+                   .ForContext(LogFields.UserId, userId)
                    .ForContext(LogFields.RequestName, requestName)
                    .ForContext(LogFields.ResponseBody, failures.Select(I => new { I.PropertyName, I.ErrorMessage }), destructureObjects: true)
                    .ForContext(LogFields.MessageSource, "MediatR")

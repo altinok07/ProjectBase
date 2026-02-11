@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using ProjectBase.Core.Helpers;
 using ProjectBase.Core.Logging;
@@ -121,6 +121,10 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
 
                 LogCompletion(context, optionsValue, correlationId, stopwatch.ElapsedMilliseconds, requestBody, responseBody);
 
+                // Always rewind before copying to the real response stream.
+                // Otherwise, for non-logged content types (e.g. application/javascript),
+                // the position stays at the end and we end up sending an empty body.
+                tempResponseStream.Position = 0;
                 await tempResponseStream.CopyToAsync(originalResponseBody);
             }
             catch (Exception ex)
@@ -158,8 +162,10 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
     private static void LogCompletion(HttpContext context, HttpLoggingOptions optionsValue, string correlationId, long elapsedMs, string requestBody, string responseBody)
     {
         var level = ParseLogLevel(optionsValue.ResponseLogLevel);
+        var userId = context.GetUserIdOrAnonymous();
 
         var log = Log.ForContext(LogFields.CorrelationId, correlationId)
+                     .ForContext(LogFields.UserId, userId)
                      .ForContext(LogFields.HttpMethod, context.Request.Method)
                      .ForContext(LogFields.HttpPath, context.Request.Path)
                      .ForContext(LogFields.HttpQuery, QueryToObject(context.Request.Query))
@@ -170,24 +176,27 @@ internal sealed class HttpLoggingMiddleware(RequestDelegate next, IOptions<HttpL
                      .ForContext(LogFields.ResponseBody, string.IsNullOrWhiteSpace(responseBody) ? "(empty)" : responseBody);
 
         // Use existing structured properties to avoid duplicate fields; include correlation id
-        log.Write(level, "HTTP {http.method} {http.path} ({correlation.id}) completed in {elapsed.ms} ms");
+        log.Write(level, "HTTP {http.method} {http.path} ({correlation.id}) completed in {elapsed.ms} ms - Status: {http.status.code}");
     }
 
     private static void LogError(HttpContext context, HttpLoggingOptions optionsValue, string correlationId, long elapsedMs, string requestBody, Exception ex, string responseBody)
     {
         var level = ParseLogLevel(optionsValue.ErrorLogLevel);
+        var userId = context.GetUserIdOrAnonymous();
 
         var log = Log.ForContext(LogFields.CorrelationId, correlationId)
+                     .ForContext(LogFields.UserId, userId)
                      .ForContext(LogFields.HttpMethod, context.Request.Method)
                      .ForContext(LogFields.HttpPath, context.Request.Path)
                      .ForContext(LogFields.HttpQuery, QueryToObject(context.Request.Query))
+                     .ForContext(LogFields.HttpStatusCode, context.Response.StatusCode)
                      .ForContext(LogFields.ElapsedMs, elapsedMs)
                      .ForContext(LogFields.MessageSource, "Http")
                      .ForContext(LogFields.RequestBody, string.IsNullOrWhiteSpace(requestBody) ? "(empty)" : requestBody)
                      .ForContext(LogFields.ResponseBody, string.IsNullOrWhiteSpace(responseBody) ? "(empty)" : responseBody);
 
         // Use existing structured properties to avoid duplicate fields; include correlation id
-        log.Write(level, ex, "HTTP {http.method} {http.path} ({correlation.id}) failed after {elapsed.ms} ms");
+        log.Write(level, ex, "HTTP {http.method} {http.path} ({correlation.id}) failed after {elapsed.ms} ms - Status: {http.status.code}");
     }
 
     private static LogEventLevel ParseLogLevel(string? level)

@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace ProjectBase.Core.Logging;
 
-internal static class CorrelationIdExtensions
+public static class CorrelationIdExtensions
 {
     private static string CreateNewId() => Guid.NewGuid().ToString("N");
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Events;
 using Serilog.Filters;
@@ -15,10 +16,25 @@ public static class ConfigureLoggingExtension
         .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
         .Filter.ByExcluding(Matching.FromSource("Microsoft"))
         .Filter.ByExcluding(Matching.FromSource("System"))
-        .WriteTo.Console(theme: SystemConsoleTheme.Literate)
-        //.WriteTo.Elasticsearch(GetElasticsearchSinkOptions())
-        .WriteTo.Seq(serverUrl: GetSeqServerUrl());
-    //.Enrich.FromLogContext();
+        .WriteTo.Console(theme: SystemConsoleTheme.Literate);
+    // .WriteTo.Elasticsearch(GetElasticsearchSinkOptions())
+    // .WriteTo.Seq(serverUrl: GetSeqServerUrl());
+
+    public static LoggerConfiguration ConfigureLogging(this LoggerConfiguration loggerConfig, IConfiguration configuration)
+    {
+        // Prefer env-specific appsettings via configuration; fall back to default for backward compatibility.
+        var seqServerUrl =
+            configuration["Seq:ServerUrl"]
+            ?? GetSeqServerUrl();
+
+        return loggerConfig
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Filter.ByExcluding(Matching.FromSource("Microsoft"))
+            .Filter.ByExcluding(Matching.FromSource("System"))
+            .WriteTo.Console(theme: SystemConsoleTheme.Literate)
+            //.WriteTo.Elasticsearch(GetElasticsearchSinkOptions())
+            .WriteTo.Seq(serverUrl: seqServerUrl);
+    }
 
     #region ElsticSearch Configuration
     private static ElasticsearchSinkOptions GetElasticsearchSinkOptions() => new(new Uri("http://localhost:9200"))

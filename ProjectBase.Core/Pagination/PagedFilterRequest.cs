@@ -31,5 +31,10 @@ public class PagedFilterRequest<T>(PaginationFilterQuery filterQuery,
     /// Gets or sets the optional function to order the query results.
     /// </summary>
     public Func<IQueryable<T>, IOrderedQueryable<T>>? OrderBy { get; set; } = orderBy;
+
+    /// <summary>
+    /// If true, EF Core global query filters (e.g. soft-delete HasQueryFilter) will be ignored for this query.
+    /// </summary>
+    public bool IgnoreQueryFilters { get; set; }
 }
 

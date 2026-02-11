@@ -1,4 +1,4 @@
-﻿using MassTransit;
+using MassTransit;
 using Microsoft.Extensions.Options;
 using ProjectBase.Core.Helpers;
 using ProjectBase.Core.Logging.Models;

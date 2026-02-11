@@ -1,8 +1,9 @@
 namespace ProjectBase.Core.Logging;
 
-internal static class LogFields
+public static class LogFields
 {
     public const string CorrelationId = "correlation.id";
+    public const string UserId = "user.id";
     public const string RequestName = "request.name";
     public const string RequestBody = "request.body";
     public const string ResponseBody = "response.body";

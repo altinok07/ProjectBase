@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ProjectBase.Core.Results;
+using ProjectBase.Core.Security.CurrentUser;
 
 namespace ProjectBase.Core.Api.Controllers;
 
@@ -8,6 +9,15 @@ namespace ProjectBase.Core.Api.Controllers;
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
+    /// <summary>
+    /// Current authenticated user's id resolved by <see cref="NabzApp.Api.Filters.GetCurrentUserIdActionFilter"/>.
+    /// </summary>
+    protected Guid? CurrentUserId
+        => HttpContext?.Items.TryGetValue(CurrentUserConstants.HttpContextItemKey, out var value) == true
+            && value is Guid id
+            ? id
+            : null;
+
     [NonAction]
     protected IActionResult CreateActionResult(Result result)
     {

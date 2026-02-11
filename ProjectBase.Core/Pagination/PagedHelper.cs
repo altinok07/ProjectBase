@@ -27,5 +27,24 @@ public static class PagedHelper
 
         return response;
     }
+
+    /// <summary>
+    /// Creates a paged response for a non-enumerable payload (e.g. an object that contains multiple collections).
+    /// </summary>
+    /// <typeparam name="T">The type of the data payload.</typeparam>
+    /// <param name="data">The data payload for the current page.</param>
+    /// <param name="validFilter">The pagination filter query containing page number and page size.</param>
+    /// <param name="totalRecords">The total number of records across all pages (for the primary collection).</param>
+    /// <returns>A <see cref="PagedResponse{T}"/> instance with calculated pagination metadata.</returns>
+    public static PagedResponse<T> CreatePagedResponseData<T>(T data, PaginationFilterQuery validFilter, int totalRecords)
+    {
+        var response = new PagedResponse<T>(data, validFilter.PageNumber, validFilter.PageSize);
+
+        var totalPages = totalRecords / (double)validFilter.PageSize;
+        response.TotalPages = Convert.ToInt32(Math.Ceiling(totalPages));
+        response.TotalRecords = totalRecords;
+
+        return response;
+    }
 }
 
