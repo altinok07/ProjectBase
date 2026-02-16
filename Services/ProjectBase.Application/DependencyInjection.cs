@@ -2,7 +2,10 @@ using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ProjectBase.Application.Mappings;
+using ProjectBase.Application.ResultMessages;
 using ProjectBase.Core.Extensions;
+using ProjectBase.Core.Localization;
+using ProjectBase.Core.Localization.Interfaces;
 using ProjectBase.Core.Logging.Models;
 using ProjectBase.Core.Security.Hashing;
 using ProjectBase.Infrastructure;
@@ -22,6 +25,10 @@ public static class DependencyInjection
         services.AddPipelineBehaviors();
 
         services.AddSingleton<IHashProperty, HashProperty>();
+
+        services.AddLocalizations();
+        services.AddSingleton<ICultureCatalog, TrCatalog>();
+        services.AddSingleton<ICultureCatalog, EnCatalog>();
 
         services.AddInfrastructure(configuration);
 

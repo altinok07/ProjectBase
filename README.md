@@ -13,10 +13,45 @@ Bu doküman, `ProjectBase.Core` kütüphanesini **hiç bilmeyen birinin** kendi 
 - **MediatR pipeline behaviors** (logging/validation/performance/exception)
 - **EF Core için BaseContext** (audit + soft delete)
 - **Generic repository + pagination/filter/sort yardımcıları**
+- **Enum → localized message kataloğu** (`ILocalizedMessages` + `ICultureCatalog`)
 
 > Bu repo içinde ayrıca örnek bir çözüm de var (`Services/*`). İsterseniz birebir aynı kurgu ile ilerleyebilirsiniz; ama `ProjectBase.Core` tek başına da kullanılabilir.
 
 ---
+
+## Yeni özellik: Localized Messages (enum → metin)
+
+Bu repo’da “handler içinde hard-coded text yazmak” yerine, mesajları enum anahtarları üzerinden kültüre göre çözümleyen bir altyapı var:
+
+- **`ILocalizedMessages`**: `Get<TEnum>(TEnum key, params object[] args)` ile mesajı döner.
+- **`ICultureCatalog`**: Her kültür için, enum tiplerini mesaj sözlüklerine map’ler (enumType → (enumValue → text)).
+- **Fallback kuralı**:
+  - Aktif kültürde anahtar bulunamazsa **default kültüre** düşer (`tr-tr`)
+  - Orada da bulunamazsa `key.ToString()` döner
+
+### DI (önerilen)
+
+`Application` katmanında (repo örneği: `Services/ProjectBase.Application/DependencyInjection.cs`) aşağıdaki kayıtlar yapılır:
+
+- `services.AddLocalizations();`
+- Her kültür için birer `ICultureCatalog` implementasyonu:
+  - `services.AddSingleton<ICultureCatalog, TrCatalog>();`
+  - `services.AddSingleton<ICultureCatalog, EnCatalog>();`
+
+> Not: `AddLocalizations()` içinde `HttpContext`’ten kültür okuyabilmek için `HttpContextAccessor` da register edilir.
+
+### Handler’da kullanım örneği
+
+Repo örneği (`Services/ProjectBase.Application/Handlers/Users/UserCreateCommandHandler.cs`) kullanıcı zaten varsa:
+
+```csharp
+return Result.Fail(ResultType.Conflict, _localizedMessages.Get(UserMessages.UserAlreadyCreated));
+```
+
+### Katalog yapısı (örnek)
+
+- `TrCatalog` / `EnCatalog`: Kültür bazlı “root map”
+- `CommonCatalog`, `UserCatalog`: İlgili enum’a ait TR/EN mesaj sözlükleri
 
 ## Hızlı Başlangıç (Core’u kendi projene ekle)
 

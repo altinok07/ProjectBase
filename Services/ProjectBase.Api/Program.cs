@@ -1,4 +1,5 @@
 using ProjectBase.Application;
+using ProjectBase.Core.Api.Filters;
 using ProjectBase.Core.Extensions;
 using ProjectBase.Core.Logging;
 using Scalar.AspNetCore;
@@ -24,7 +25,11 @@ try
 
     builder.Services.AddApplication(builder.Configuration);
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers(opt =>
+    {
+        opt.Filters.Add<GetCurrentUserIdActionFilter>();
+        opt.Filters.Add<LocalizationActionFilter>();
+    });
 
     builder.Services.AddJwtAuthentication(builder.Configuration);
 

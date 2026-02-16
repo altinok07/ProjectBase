@@ -19,7 +19,7 @@ public class UserController(IMediator mediator) : BaseController
 {
     private readonly IMediator _mediator = mediator;
 
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("Register")]
     public async Task<IActionResult> Register([FromBody] UserCreateCommand request)
         => CreateActionResult(await _mediator.Send(request));

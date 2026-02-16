@@ -5,7 +5,7 @@ using ProjectBase.Core.Security.CurrentUser;
 namespace ProjectBase.Core.Api.Controllers;
 
 
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/{localizationCode}/[controller]")]
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
@@ -17,6 +17,8 @@ public abstract class BaseController : ControllerBase
             && value is Guid id
             ? id
             : null;
+
+    public string LocalizationCode { get; set; } = null!;
 
     [NonAction]
     protected IActionResult CreateActionResult(Result result)

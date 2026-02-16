@@ -1,6 +1,8 @@
 using AutoMapper;
 using MediatR;
 using ProjectBase.Application.Commands.Users;
+using ProjectBase.Application.ResultMessages.Enums;
+using ProjectBase.Core.Localization.Interfaces;
 using ProjectBase.Core.Results;
 using ProjectBase.Core.Security.Hashing;
 using ProjectBase.Domain.Base;
@@ -9,17 +11,18 @@ using ProjectBase.Domain.Enums;
 
 namespace ProjectBase.Application.Handlers.Users;
 
-internal sealed class UserCreateCommandHandler(IUnitOfWork repo, IMapper mapper, IHashProperty hashProperty) : IRequestHandler<UserCreateCommand, Result>
+internal sealed class UserCreateCommandHandler(IUnitOfWork repo, IMapper mapper, IHashProperty hashProperty, ILocalizedMessages localizedMessages) : IRequestHandler<UserCreateCommand, Result>
 {
     private readonly IUnitOfWork _repo = repo;
     private readonly IMapper _mapper = mapper;
     private readonly IHashProperty _hashProperty = hashProperty;
+    private readonly ILocalizedMessages _localizedMessages = localizedMessages;
 
     public async Task<Result> Handle(UserCreateCommand request, CancellationToken cancellationToken)
     {
         var userExist = await _repo.UserRepository.GetAsync(new(I => I.Mail == request.Mail && !I.IsDeleted));
         if (userExist != null)
-            return Result.Fail(ResultType.Conflict, "Kullanýcý Sistemde kayýtlý");
+            return Result.Fail(ResultType.Conflict, _localizedMessages.Get(UserMessages.UserAlreadyCreated));
 
         var mapped = _mapper.Map<User>(request);
         mapped.PasswordHash = _hashProperty.Hash(request.Password);
