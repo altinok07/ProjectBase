@@ -545,6 +545,29 @@ Pratik kullanım kuralı:
 
 ---
 
+## Helpers: EnumHelper (Display/Parse/Convert)
+
+Core içinde `ProjectBase.Core/Helpers/EnumHelper.cs` altında, enum’larla çalışmayı kolaylaştıran genel metotlar var:
+
+- **DisplayAttribute okuma**:
+  - `GetDisplayName(...)`
+  - `GetDisplayShortName(...)`
+  - `GetDisplayDescription(...)`
+- **Genel attribute okuma**: `GetAttribute<TEnum, TAttribute>(...)`
+- **Liste üretme (UI/dropdown)**:
+  - `GetValues<TEnum>()`, `GetNames<TEnum>()`
+  - `GetDisplayItems<TEnum>()` → `(Value, DisplayName)` listesi
+- **Parse/validate**:
+  - `TryParse<TEnum>(...)`
+  - `TryParseDefined<TEnum>(...)`
+  - `IsDefined(...)`
+- **Sayısal dönüşüm**:
+  - `ToInt32(...)`, `ToInt64(...)`
+
+> Not: `EnumHelper`, `DisplayAttribute` gibi reflection tabanlı okumalarda tekrar maliyetini azaltmak için küçük bir cache kullanır.
+
+---
+
 ## Migrations (örnek akış)
 
 Bu repo’da Infrastructure altında hazır komut dosyaları var:
