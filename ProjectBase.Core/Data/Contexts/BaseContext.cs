@@ -166,9 +166,10 @@ public abstract class BaseContext(DbContextOptions options, IHttpContextAccessor
 
     /// <summary>
     /// Gets the current authenticated user's identifier from the HTTP context.
+    /// Exposed for use in bulk operations (e.g. ExecuteUpdateAsync) that bypass change tracking.
     /// </summary>
     /// <returns>The username or identifier if available, otherwise null.</returns>
-    private string? GetCurrentUser()
+    public string? GetCurrentUser()
     {
         var identity = _httpContextAccessor?.HttpContext?.User?.Identity as ClaimsIdentity;
         if (identity == null)

@@ -1,4 +1,5 @@
-﻿using ProjectBase.Core.Entities;
+using Microsoft.EntityFrameworkCore.Query;
+using ProjectBase.Core.Entities;
 using ProjectBase.Core.Expressions;
 using ProjectBase.Core.Pagination;
 using ProjectBase.Core.Results;
@@ -14,6 +15,7 @@ public interface IRepository<T> where T : BaseEntity
     #endregion
     #region Update
     Task<Result<T?>> UpdateAsync(T entity);
+    Task<Result<int>> UpdateAsync(Expression<Func<T, bool>> predicate, Action<UpdateSettersBuilder<T>> setPropertyCalls);
     Task<Result<IList<T>?>> UpdateRangeAsync(IList<T> entities);
     #endregion
     #region Delete

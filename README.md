@@ -367,7 +367,7 @@ Dosya: `ProjectBase.Core/Entities/BaseEntity.cs`
 Dosya: `ProjectBase.Core/Repositories/EfCore/IRepository.cs`
 
 - **Add**: `AddAsync`, `AddRangeAsync`
-- **Update**: `UpdateAsync`, `UpdateRangeAsync`
+- **Update**: `UpdateAsync`, `UpdateRangeAsync`, `UpdateAsync(predicate, setPropertyCalls)` (bulk)
 - **Delete**: `DeleteAsync(entity)`, `DeleteAsync(predicate)`, `DeleteRangeAsync`
 - **Get**: `GetAsync`, `GetAllAsync`, `GetAllPagedAsync`, `GetCountAsync`
 
@@ -378,6 +378,39 @@ Dosya: `ProjectBase.Core/Repositories/EfCore/Repository {T}.cs`
 - **Ne sağlar**: EF Core `DbSet<T>` üzerinden generic implementasyon.
 - **Okuma**: `AsNoTracking()` kullanır.
 - **Paging**: `CountAsync` + `Skip/Take`.
+
+### Bulk Update (`UpdateAsync` predicate + setPropertyCalls)
+
+`UpdateAsync(entity)` ve `UpdateRangeAsync(entities)` change tracker üzerinden çalışır; `SaveChangesAsync` sırasında audit alanları (`UpdatedDate`, `UpdatedBy`) otomatik doldurulur. **Bulk update** senaryosunda ise EF Core `ExecuteUpdateAsync` kullanılır; bu metot change tracker’ı atladığı için audit alanları normal akışta güncellenmez.
+
+Core’daki `UpdateAsync(Expression<Func<T, bool>> predicate, Action<UpdateSettersBuilder<T>> setPropertyCalls)` overload’u bu durumu çözer:
+
+- **Ne yapar**: `ExecuteUpdateAsync` ile predicate’e uyan tüm satırları tek sorguda günceller.
+- **Audit**: `UpdatedDate` ve `UpdatedBy` otomatik eklenir (`BaseContext.GetCurrentUser()` ile; `SaveChangesAsync` ile aynı mantık).
+- **Dönüş**: `Result<int>` — güncellenen satır sayısı.
+
+**Kullanım örneği:**
+
+```csharp
+// Tek property güncelleme
+var result = await _repository.UpdateAsync(
+    x => x.CategoryId == categoryId,
+    s => s.SetProperty(e => e.IsProcessed, true));
+
+// Birden fazla property
+var result = await _repository.UpdateAsync(
+    x => x.Status == "Pending",
+    s =>
+    {
+        s.SetProperty(e => e.Status, "Active");
+        s.SetProperty(e => e.ProcessedAt, DateTime.UtcNow);
+    });
+
+if (result.IsSuccess)
+    var updatedCount = result.Data; // Güncellenen satır sayısı
+```
+
+> **Not**: `UpdateSettersBuilder<T>` EF Core 10 API’sine aittir. `UpdatedDate` ve `UpdatedBy` her çağrıda otomatik set edilir; kullanıcının `setPropertyCalls` içinde bu alanları vermesi gerekmez.
 
 ---
 

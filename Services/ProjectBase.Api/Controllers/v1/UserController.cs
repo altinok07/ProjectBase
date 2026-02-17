@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectBase.Application.Commands.Users;
+using ProjectBase.Application.Handlers;
 using ProjectBase.Application.Queries.Users;
 using ProjectBase.Core.Api.Controllers;
 using ProjectBase.Core.Entities;
@@ -22,6 +23,11 @@ public class UserController(IMediator mediator) : BaseController
     //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("Register")]
     public async Task<IActionResult> Register([FromBody] UserCreateCommand request)
+        => CreateActionResult(await _mediator.Send(request));
+
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpPost("userUpdate")]
+    public async Task<IActionResult> test([FromBody] UserUpdateCommand request)
         => CreateActionResult(await _mediator.Send(request));
 
     [HttpPost("RegisterDapper")]

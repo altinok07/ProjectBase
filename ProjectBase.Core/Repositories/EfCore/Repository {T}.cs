@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using ProjectBase.Core.Data.Contexts;
 using ProjectBase.Core.Entities;
 using ProjectBase.Core.Expressions;
@@ -74,6 +75,30 @@ public class Repository<T>(BaseContext context) : IRepository<T> where T : BaseE
         catch (Exception ex)
         {
             return RepositoryExtensions.ExceptionError<IList<T>?>(ex, "NotUpdated")!;
+        }
+    }
+
+    public async Task<Result<int>> UpdateAsync(Expression<Func<T, bool>> predicate, Action<UpdateSettersBuilder<T>> setPropertyCalls)
+    {
+        try
+        {
+            var currentUser = _context.GetCurrentUser();
+            var now = DateTime.Now;
+
+            var affected = await _context.Set<T>()
+                .Where(predicate)
+                .ExecuteUpdateAsync(s =>
+                {
+                    setPropertyCalls(s);
+                    s.SetProperty(e => e.UpdatedDate, now);
+                    s.SetProperty(e => e.UpdatedBy, currentUser);
+                });
+
+            return Result<int>.Success(ResultType.Success, affected, "Updated");
+        }
+        catch (Exception ex)
+        {
+            return RepositoryExtensions.ExceptionError<int>(ex, "NotUpdated")!;
         }
     }
     #endregion
