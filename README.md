@@ -528,7 +528,7 @@ var result = await http.PostFormDataAsync<MyResponse>(
 
 ## FileService: IIS FTP üzerinden dosya yükleme / silme
 
-IIS FTP sunucusuna dosya yüklemek ve silmek için `IFileService` kullanılır. HTTP PUT/DELETE yerine **FTP protokolü** ile çalışır.
+IIS FTP sunucusuna dosya yüklemek ve silmek için `IFileService` kullanılır. **FluentFTP** kütüphanesi ile FTP protokolü üzerinden çalışır (obsolete `FtpWebRequest` yerine).
 
 ### `IFileService`
 

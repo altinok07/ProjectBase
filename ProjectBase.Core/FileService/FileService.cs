@@ -1,7 +1,7 @@
+using FluentFTP;
 using Microsoft.Extensions.Options;
 using ProjectBase.Core.FileService.Interfaces;
 using ProjectBase.Core.FileService.Models;
-using System.Net;
 
 namespace ProjectBase.Core.FileService
 {
@@ -15,11 +15,19 @@ namespace ProjectBase.Core.FileService
             if (!pathOrUrl.Contains(GetHost(), StringComparison.OrdinalIgnoreCase))
                 return;
 
-            var ftpUri = ToFtpUri(pathOrUrl);
-            var ftpRequest = CreateFtpRequest(ftpUri, WebRequestMethods.Ftp.DeleteFile);
+            var remotePath = ToRemotePath(pathOrUrl);
 
-            using var response = (FtpWebResponse)await ftpRequest.GetResponseAsync().WaitAsync(cancellationToken);
-            _ = response.StatusDescription;
+            await using var client = CreateClient();
+            await client.Connect(cancellationToken);
+            try
+            {
+                if (await client.FileExists(remotePath, cancellationToken))
+                    await client.DeleteFile(remotePath, cancellationToken);
+            }
+            finally
+            {
+                await client.Disconnect(cancellationToken);
+            }
         }
 
         public async Task<FileUploadResult> UploadAsync(FileUploadRequest request, CancellationToken cancellationToken = default)
@@ -31,19 +39,19 @@ namespace ProjectBase.Core.FileService
             string fileName = $"{Guid.NewGuid():N}{extension}";
             var relativePath = BuildRelativePath(request.Folder, fileName);
 
-            await EnsureDirectoriesExistAsync(request.Folder, cancellationToken);
-
-            var ftpUri = BuildFtpUri(relativePath);
-            var ftpRequest = CreateFtpRequest(ftpUri, WebRequestMethods.Ftp.UploadFile);
-
-            await using (var ftpStream = await ftpRequest.GetRequestStreamAsync().WaitAsync(cancellationToken))
-            await using (var fileStream = request.File.OpenReadStream())
+            await using var client = CreateClient();
+            await client.Connect(cancellationToken);
+            try
             {
-                await fileStream.CopyToAsync(ftpStream, cancellationToken);
-            }
+                await EnsureDirectoriesExistAsync(client, request.Folder, cancellationToken);
 
-            using var ftpResponse = (FtpWebResponse)await ftpRequest.GetResponseAsync().WaitAsync(cancellationToken);
-            _ = ftpResponse.StatusDescription;
+                await using var fileStream = request.File.OpenReadStream();
+                await client.UploadStream(fileStream, relativePath, token: cancellationToken);
+            }
+            finally
+            {
+                await client.Disconnect(cancellationToken);
+            }
 
             return new FileUploadResult
             {
@@ -59,23 +67,24 @@ namespace ProjectBase.Core.FileService
             if (string.IsNullOrWhiteSpace(request.Base64Content))
                 throw new ArgumentException("Base64 content is required.", nameof(request));
 
+            var base64Content = StripDataUriPrefix(request.Base64Content);
             var extension = NormalizeExtension(request.Extension);
             string fileName = $"{Guid.NewGuid():N}{extension}";
             var relativePath = BuildRelativePath(request.Folder, fileName);
 
-            await EnsureDirectoriesExistAsync(request.Folder, cancellationToken);
+            byte[] fileContents = Convert.FromBase64String(base64Content);
 
-            byte[] fileContents = Convert.FromBase64String(request.Base64Content);
-            var ftpUri = BuildFtpUri(relativePath);
-            var ftpRequest = CreateFtpRequest(ftpUri, WebRequestMethods.Ftp.UploadFile);
-
-            await using (var ftpStream = await ftpRequest.GetRequestStreamAsync().WaitAsync(cancellationToken))
+            await using var client = CreateClient();
+            await client.Connect(cancellationToken);
+            try
             {
-                await ftpStream.WriteAsync(fileContents, cancellationToken);
+                await EnsureDirectoriesExistAsync(client, request.Folder, cancellationToken);
+                await client.UploadBytes(fileContents, relativePath, token: cancellationToken);
             }
-
-            using var ftpResponse = (FtpWebResponse)await ftpRequest.GetResponseAsync().WaitAsync(cancellationToken);
-            _ = ftpResponse.StatusDescription;
+            finally
+            {
+                await client.Disconnect(cancellationToken);
+            }
 
             return new FileUploadResult
             {
@@ -85,16 +94,19 @@ namespace ProjectBase.Core.FileService
             };
         }
 
-        private FtpWebRequest CreateFtpRequest(Uri uri, string method)
+        private AsyncFtpClient CreateClient()
         {
-#pragma warning disable SYSLIB0014
-            var request = (FtpWebRequest)WebRequest.Create(uri);
-#pragma warning restore SYSLIB0014
-            request.Method = method;
-            request.Credentials = new NetworkCredential(_settings.Username, _settings.Password);
-            request.UseBinary = true;
-            request.KeepAlive = false;
-            return request;
+            var (host, port) = GetHostAndPort();
+            return new AsyncFtpClient(host, _settings.Username, _settings.Password, port);
+        }
+
+        private static string StripDataUriPrefix(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return content;
+            if (!content.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return content;
+
+            var commaIndex = content.IndexOf(',');
+            return commaIndex >= 0 ? content[(commaIndex + 1)..] : content;
         }
 
         private static string NormalizeExtension(string? extension)
@@ -109,7 +121,7 @@ namespace ProjectBase.Core.FileService
             return string.IsNullOrEmpty(subFolder) ? fileName : $"{subFolder}/{fileName}";
         }
 
-        private async Task EnsureDirectoriesExistAsync(string folder, CancellationToken cancellationToken)
+        private static async Task EnsureDirectoriesExistAsync(AsyncFtpClient client, string folder, CancellationToken cancellationToken)
         {
             var folderPath = (folder ?? string.Empty).Trim('/');
             if (string.IsNullOrEmpty(folderPath)) return;
@@ -120,44 +132,21 @@ namespace ProjectBase.Core.FileService
             foreach (var segment in segments)
             {
                 currentPath = string.IsNullOrEmpty(currentPath) ? segment : $"{currentPath}/{segment}";
-                var dirUri = BuildFtpUri(currentPath);
 
-                try
-                {
-                    var mkDirRequest = CreateFtpRequest(dirUri, WebRequestMethods.Ftp.MakeDirectory);
-                    using var response = (FtpWebResponse)await mkDirRequest.GetResponseAsync().WaitAsync(cancellationToken);
-                    _ = response.StatusDescription;
-                }
-                catch (WebException ex) when (ex.Response is FtpWebResponse ftpResponse)
-                {
-                    if (ftpResponse.StatusCode != FtpStatusCode.ActionNotTakenFilenameNotAllowed &&
-                        ftpResponse.StatusCode != FtpStatusCode.ActionNotTakenFileUnavailable)
-                    {
-                        var message = ftpResponse.StatusDescription ?? ex.Message;
-                        if (!message.Contains("exist", StringComparison.OrdinalIgnoreCase) &&
-                            !message.Contains("already", StringComparison.OrdinalIgnoreCase))
-                            throw;
-                    }
-                }
+                if (!await client.DirectoryExists(currentPath, cancellationToken))
+                    await client.CreateDirectory(currentPath, cancellationToken);
             }
         }
 
-        private Uri BuildFtpUri(string relativePath)
-        {
-            var baseUri = EnsureFtpBaseUri();
-            relativePath = (relativePath ?? string.Empty).TrimStart('/');
-            return new Uri(baseUri, relativePath);
-        }
-
-        private Uri ToFtpUri(string pathOrUrl)
+        private string ToRemotePath(string pathOrUrl)
         {
             if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var absolute))
             {
                 if (absolute.Scheme.Equals("ftp", StringComparison.OrdinalIgnoreCase))
-                    return absolute;
-                return BuildFtpUri(absolute.AbsolutePath.TrimStart('/'));
+                    return absolute.AbsolutePath.TrimStart('/');
+                return absolute.AbsolutePath.TrimStart('/');
             }
-            return BuildFtpUri(pathOrUrl.TrimStart('/'));
+            return pathOrUrl.TrimStart('/');
         }
 
         private string BuildPublicUrl(string relativePath)
@@ -168,33 +157,36 @@ namespace ProjectBase.Core.FileService
 
         private string GetHost()
         {
-            if (string.IsNullOrWhiteSpace(_settings.FtpAddress)) return string.Empty;
-            var addr = _settings.FtpAddress.Trim();
-            if (Uri.TryCreate(addr, UriKind.Absolute, out var uri))
-                return uri.Host;
-            if (Uri.TryCreate("ftp://" + addr.TrimStart('/'), UriKind.Absolute, out uri))
-                return uri.Host;
-            return addr.Split('/')[0];
+            var (host, _) = GetHostAndPort();
+            return host;
         }
 
-        private Uri EnsureFtpBaseUri()
+        private (string Host, int Port) GetHostAndPort()
         {
             if (string.IsNullOrWhiteSpace(_settings.FtpAddress))
                 throw new InvalidOperationException($"{nameof(FtpSettings)}:{nameof(FtpSettings.FtpAddress)} gerekli.");
 
-            var address = _settings.FtpAddress.Trim().TrimEnd('/') + "/";
+            var addr = _settings.FtpAddress.Trim();
 
-            if (Uri.TryCreate(address, UriKind.Absolute, out var absolute))
+            if (Uri.TryCreate(addr, UriKind.Absolute, out var uri))
             {
-                if (absolute.Scheme.Equals("ftp", StringComparison.OrdinalIgnoreCase))
-                    return absolute;
-                throw new InvalidOperationException($"FtpAddress FTP adresi olmalı (ftp://...).");
+                if (!uri.Scheme.Equals("ftp", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"FtpAddress FTP adresi olmalı (ftp://...).");
+                return (uri.Host, uri.Port > 0 ? uri.Port : 21);
             }
 
-            if (Uri.TryCreate("ftp://" + address.TrimStart('/'), UriKind.Absolute, out absolute))
-                return absolute;
+            if (Uri.TryCreate("ftp://" + addr.TrimStart('/'), UriKind.Absolute, out uri))
+                return (uri.Host, uri.Port > 0 ? uri.Port : 21);
 
-            throw new InvalidOperationException($"Geçersiz FtpAddress: '{_settings.FtpAddress}'");
+            var hostPart = addr.Split('/')[0];
+            var portMatch = hostPart.Contains(':');
+            if (portMatch)
+            {
+                var parts = hostPart.Split(':');
+                if (parts.Length == 2 && int.TryParse(parts[1], out var port))
+                    return (parts[0], port);
+            }
+            return (hostPart, 21);
         }
     }
 }
