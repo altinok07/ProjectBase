@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProjectBase.Application.Mappings;
 using ProjectBase.Application.ResultMessages;
 using ProjectBase.Core.Extensions;
+using ProjectBase.Core.FileService;
 using ProjectBase.Core.Localization;
 using ProjectBase.Core.Localization.Interfaces;
 using ProjectBase.Core.Logging.Models;
@@ -29,6 +30,8 @@ public static class DependencyInjection
         services.AddLocalizations();
         services.AddSingleton<ICultureCatalog, TrCatalog>();
         services.AddSingleton<ICultureCatalog, EnCatalog>();
+
+        services.AddFileService(configuration);
 
         services.AddInfrastructure(configuration);
 

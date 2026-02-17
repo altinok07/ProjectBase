@@ -14,6 +14,7 @@ Bu doküman, `ProjectBase.Core` kütüphanesini **hiç bilmeyen birinin** kendi 
 - **EF Core için BaseContext** (audit + soft delete)
 - **Generic repository + pagination/filter/sort yardımcıları**
 - **Enum → localized message kataloğu** (`ILocalizedMessages` + `ICultureCatalog`)
+- **FileService** (IIS FTP üzerinden dosya yükleme/silme, otomatik klasör oluşturma)
 
 > Bu repo içinde ayrıca örnek bir çözüm de var (`Services/*`). İsterseniz birebir aynı kurgu ile ilerleyebilirsiniz; ama `ProjectBase.Core` tek başına da kullanılabilir.
 
@@ -522,6 +523,66 @@ var result = await http.PostFormDataAsync<MyResponse>(
 ```
 
 > Not: `LeaveOpen=false` (default) ise istek tamamlanınca stream dispose edilir (en güvenli varsayılan). `LeaveOpen=true` ise stream açık kalır; işin bitince sen dispose etmelisin.
+
+---
+
+## FileService: IIS FTP üzerinden dosya yükleme / silme
+
+IIS FTP sunucusuna dosya yüklemek ve silmek için `IFileService` kullanılır. HTTP PUT/DELETE yerine **FTP protokolü** ile çalışır.
+
+### `IFileService`
+
+Dosya: `ProjectBase.Core/FileService/Interfaces/IFileService.cs`
+
+- **`UploadAsync(FileUploadRequest, CancellationToken)`**: `IFormFile` ile dosya yükler. Klasör yolu yoksa otomatik oluşturur.
+- **`UploadBase64Async(Base64UploadRequest, CancellationToken)`**: Base64 içerikten dosya yükler.
+- **`RemoveAsync(string pathOrUrl, CancellationToken)`**: Verilen path/URL’deki dosyayı siler.
+
+### Modeller
+
+- **`FileUploadRequest`**: `File` (IFormFile), `Folder` (örn. `"Fairs/Test1/Test2/Test3"`)
+- **`Base64UploadRequest`**: `Base64Content`, `Folder`, `Extension` (opsiyonel)
+- **`FileUploadResult`**: `Path` (public CDN URL), `Extension`, `SizeBytes`
+
+### Konfigürasyon (appsettings.json)
+
+```json
+{
+  "FtpSettings": {
+    "FtpAddress": "cdn.example.com",
+    "Username": "ftp_user",
+    "Password": "ftp_password"
+  }
+}
+```
+
+- **FtpAddress**: IIS FTP host (örn. `cdn.example.com` veya `ftp://cdn.example.com`). Dönen `Path` için `https://{host}/...` kullanılır.
+
+### DI
+
+Application katmanında (`DependencyInjection.cs`):
+
+```csharp
+services.AddFileService(configuration);
+```
+
+### Kullanım örneği
+
+```csharp
+// IFormFile ile yükleme
+var request = new FileUploadRequest 
+{ 
+    File = formFile, 
+    Folder = "Fairs/Test1/Test2/Test3" 
+};
+var result = await _fileService.UploadAsync(request, cancellationToken);
+// result.Path = "https://cdn.example.com/Fairs/Test1/Test2/Test3/{guid}.ext"
+
+// Silme
+await _fileService.RemoveAsync(result.Path, cancellationToken);
+```
+
+> Not: `Folder` içindeki klasör yapısı (örn. `Fairs/Test1/Test2/Test3`) yoksa, yüklemeden önce otomatik oluşturulur.
 
 ---
 

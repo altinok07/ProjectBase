@@ -9,9 +9,6 @@ namespace ProjectBase.Core.Api.Controllers;
 [ApiController]
 public abstract class BaseController : ControllerBase
 {
-    /// <summary>
-    /// Current authenticated user's id resolved by <see cref="NabzApp.Api.Filters.GetCurrentUserIdActionFilter"/>.
-    /// </summary>
     protected Guid? CurrentUserId
         => HttpContext?.Items.TryGetValue(CurrentUserConstants.HttpContextItemKey, out var value) == true
             && value is Guid id
